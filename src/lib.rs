@@ -24,6 +24,7 @@ mod tests {
         assert!(rest.is_empty(), "no rest should be remaining.");
     }
 
+    single_test!(simple0, 0);
     single_test!(simple2, 2);
     single_test!(simple3, 3);
     single_test!(simple32, 32);
@@ -102,9 +103,25 @@ mod tests {
 
         assert_eq!(d, list);
     }
+
+    #[test]
+    fn compression_fuzzing() {
+        let list = (0..100000u64).map(|n| n * 13);
+        for elem in list {
+            let c = compress(elem);
+            let (d, rest) = decompress(&c);
+
+            assert_eq!(d, elem);
+            assert!(rest.is_empty(), "no data should be remaining.");
+        }
+    }
 }
 
 pub fn compress(mut val: u64) -> Vec<u8> {
+    if val == 0 {
+        return vec![0];
+    }
+
     let mut v = Vec::new();
 
     while val > 0 {
@@ -114,7 +131,7 @@ pub fn compress(mut val: u64) -> Vec<u8> {
         // decrement value
         val >>= 7;
 
-        // Set the `follow` byte, 
+        // Set the `follow` byte,
         // if there remains information to be encoded
         if val > 0 {
             byte |= 0b1000_0000;
