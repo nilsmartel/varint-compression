@@ -2,8 +2,40 @@
 mod tests {
     use super::*;
 
+    macro_rules! single_test {
+        ($n:ident, $i:expr) => {
+            #[test]
+            fn $n() {
+                let i = $i;
+                let c = compress(i);
+                let (d, rest) = decompress(&c);
+                assert_eq!(i, d);
+                assert!(rest.is_empty(), "no rest should be remaining.");
+            }
+        };
+    }
+
     #[test]
-    fn it_works() {
+    fn simple1() {
+        let i = 36;
+        let c = compress(i);
+        let (d, rest) = decompress(&c);
+        assert_eq!(i, d);
+        assert!(rest.is_empty(), "no rest should be remaining.");
+    }
+
+    single_test!(simple2, 2);
+    single_test!(simple3, 3);
+    single_test!(simple32, 32);
+    single_test!(simple64, 64);
+    single_test!(simple65, 65);
+    single_test!(simple127, 127);
+    single_test!(simple128, 128);
+    single_test!(simple244, 244);
+    single_test!(simple12341234, 12341234);
+
+    #[test]
+    fn test_set() {
         let ints = [
             2134123213213u64,
             2313,
@@ -61,15 +93,29 @@ mod tests {
             assert_eq!(rest, vec![1, 2, 3, 4]);
         }
     }
+
+    #[test]
+    fn list_compression() {
+        let list = (0..100000).map(|n| n * 13).collect::<Vec<u64>>();
+        let c = compress_list(&list);
+        let d = decompress_list(&c);
+
+        assert_eq!(d, list);
+    }
 }
 
 pub fn compress(mut val: u64) -> Vec<u8> {
     let mut v = Vec::new();
 
     while val > 0 {
+        // take the first 7 bytes of the value
         let mut byte = (val & 0b111_1111) as u8;
-        val = val >> 7;
 
+        // decrement value
+        val >>= 7;
+
+        // Set the `follow` byte, 
+        // if there remains information to be encoded
         if val > 0 {
             byte |= 0b1000_0000;
         }
@@ -81,17 +127,66 @@ pub fn compress(mut val: u64) -> Vec<u8> {
     v
 }
 
+pub fn compress_list(vs: &[u64]) -> Vec<u8> {
+    let mut buffer = Vec::new();
+    for v in vs {
+        let c = compress(*v);
+        buffer.extend(c);
+    }
+
+    buffer
+}
+
 pub fn decompress(data: &[u8]) -> (u64, &[u8]) {
     let mut val = 0u64;
 
     for i in 0..data.len() {
         let byte = data[i];
-        let byte_index = i * 7;
+        let byte_index = i as u64 * 7;
 
+        // update value
         {
             // cut of leading byte, if present
-            let byte = byte & 0b0111_1111
-            val |= byte << byte_index
+            let byte = (byte & 0b0111_1111) as u64;
+            // decode proper position in value
+            let byte = byte << byte_index;
+            // assign to value
+            val |= byte;
         }
+
+        // continue?
+        if byte & 0b1000_0000 != 0 {
+            continue;
+        }
+
+        // end of value is reached, return
+
+        let i = i + 1;
+        let rest = &data[i..];
+        return (val, rest);
     }
+
+    panic!("end of input reached")
+}
+
+pub fn decompress_n<const N: usize>(mut data: &[u8]) -> ([u64; N], &[u8]) {
+    let mut out = [0; N];
+    for entry in out.iter_mut() {
+        let (val, rest) = decompress(data);
+        *entry = val;
+        data = rest;
+    }
+
+    (out, data)
+}
+
+pub fn decompress_list(mut data: &[u8]) -> Vec<u64> {
+    let mut out = Vec::with_capacity(data.len());
+    while !data.is_empty() {
+        let (val, rest) = decompress(data);
+        out.push(val);
+        data = rest;
+    }
+
+    out
 }

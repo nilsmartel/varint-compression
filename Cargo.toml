@@ -2,7 +2,7 @@
 name = "varint-compression"
 version = "0.1.0"
 edition = "2021"
-author  = "nilsmartel@yahoo.de"
+authors  = ["Nils Martel nilsmartel@yahoo.de"]
 
 description = "variable length integer compression"
 repository = "https://github.com/nilsmartel/varint-compression"
