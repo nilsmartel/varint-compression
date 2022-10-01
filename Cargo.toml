@@ -2,6 +2,14 @@
 name = "varint-compression"
 version = "0.1.0"
 edition = "2021"
+author  = "nilsmartel@yahoo.de"
+
+description = "variable length integer compression"
+repository = "https://github.com/nilsmartel/varint-compression"
+readme = "./README.md"
+license = "MIT OR Apache-2.0"
+keywords = ["compression", "int", "integer", "variable", "single"]
+categories = ["algorithms", "compression"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
