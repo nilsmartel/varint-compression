@@ -8,7 +8,7 @@ mod tests {
             fn $n() {
                 let i = $i;
                 let c = compress(i);
-                let (d, rest) = decompress(&c);
+                let (d, rest) = decompress(&c).unwrap();
                 assert_eq!(i, d);
                 assert!(rest.is_empty(), "no rest should be remaining.");
             }
@@ -19,7 +19,7 @@ mod tests {
     fn simple1() {
         let i = 36;
         let c = compress(i);
-        let (d, rest) = decompress(&c);
+        let (d, rest) = decompress(&c).unwrap();
         assert_eq!(i, d);
         assert!(rest.is_empty(), "no rest should be remaining.");
     }
@@ -74,7 +74,7 @@ mod tests {
 
         for i in ints {
             let c = compress(i);
-            let (d, rest) = decompress(&c);
+            let (d, rest) = decompress(&c).unwrap();
 
             assert_eq!(d, i);
             assert_eq!(rest, Vec::new());
@@ -88,7 +88,7 @@ mod tests {
             c.push(2);
             c.push(3);
             c.push(4);
-            let (d, rest) = decompress(&c);
+            let (d, rest) = decompress(&c).unwrap();
 
             assert_eq!(d, i);
             assert_eq!(rest, vec![1, 2, 3, 4]);
@@ -99,7 +99,7 @@ mod tests {
     fn list_compression() {
         let list = (0..100000).map(|n| n * 13).collect::<Vec<u64>>();
         let c = compress_list(&list);
-        let d = decompress_list(&c);
+        let d = decompress_list(&c).unwrap();
 
         assert_eq!(d, list);
     }
@@ -109,7 +109,7 @@ mod tests {
         let list = (0..100000u64).map(|n| n * 13);
         for elem in list {
             let c = compress(elem);
-            let (d, rest) = decompress(&c);
+            let (d, rest) = decompress(&c).unwrap();
 
             assert_eq!(d, elem);
             assert!(rest.is_empty(), "no data should be remaining.");
@@ -154,7 +154,9 @@ pub fn compress_list(vs: &[u64]) -> Vec<u8> {
     buffer
 }
 
-pub fn decompress(data: &[u8]) -> (u64, &[u8]) {
+/// decompresses a string, returning the rest of the input as second argument.
+/// If an error occured, it means that more data was expected
+pub fn decompress(data: &[u8]) -> Result<(u64, &[u8]), &str> {
     let mut val = 0u64;
 
     for i in 0..data.len() {
@@ -180,30 +182,30 @@ pub fn decompress(data: &[u8]) -> (u64, &[u8]) {
 
         let i = i + 1;
         let rest = &data[i..];
-        return (val, rest);
+        return Ok((val, rest));
     }
 
-    panic!("end of input reached")
+    Err("end of input reached")
 }
 
-pub fn decompress_n<const N: usize>(mut data: &[u8]) -> ([u64; N], &[u8]) {
+pub fn decompress_n<const N: usize>(mut data: &[u8]) -> Result<([u64; N], &[u8]), &str> {
     let mut out = [0; N];
     for entry in out.iter_mut() {
-        let (val, rest) = decompress(data);
+        let (val, rest) = decompress(data)?;
         *entry = val;
         data = rest;
     }
 
-    (out, data)
+    Ok((out, data))
 }
 
-pub fn decompress_list(mut data: &[u8]) -> Vec<u64> {
+pub fn decompress_list(mut data: &[u8]) -> Result<Vec<u64>, &str> {
     let mut out = Vec::with_capacity(data.len());
     while !data.is_empty() {
-        let (val, rest) = decompress(data);
+        let (val, rest) = decompress(data)?;
         out.push(val);
         data = rest;
     }
 
-    out
+    Ok(out)
 }
