@@ -1,6 +1,7 @@
-# variable int compression
+# vbyte-compression
 
-compression of single integers to variable sized bytes.
+compression of single integers to variable sized lengths
+Employs nullsupression.
 
 ## Implementation
 
