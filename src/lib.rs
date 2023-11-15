@@ -1,3 +1,5 @@
+use std::io::Write;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,6 +117,31 @@ mod tests {
             assert!(rest.is_empty(), "no data should be remaining.");
         }
     }
+}
+
+pub fn write_number(mut val: u64, buffer: &mut impl Write) -> std::io::Result<()> {
+    if val == 0 {
+        buffer.write(&[0])?;
+        return Ok(());
+    }
+
+    while val > 0 {
+        // take the first 7 bytes of the value
+        let mut byte = (val & 0b111_1111) as u8;
+
+        // decrement value
+        val >>= 7;
+
+        // Set the `follow` byte,
+        // if there remains information to be encoded
+        if val > 0 {
+            byte |= 0b1000_0000;
+        }
+
+        buffer.write(&[byte])?;
+    }
+
+    Ok(())
 }
 
 pub fn compress(mut val: u64) -> Vec<u8> {
